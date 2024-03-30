@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Webcam Access with Face Detection</title>
+</head>
+<body>
+
+<h2>Webcam Stream</h2>
+<video id="webcam" autoplay playsinline width="640" height="480"></video>
+<button id="capture">Capture Image</button>
+<canvas id="canvas" width="640" height="480" style="position:absolute; top:0; left:0;"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+<script>
+async function loadModels() {
+    
+    await Promise.all([
+    await faceapi.nets.tinyFaceDetector.loadFromUri('/static/models/tiny_face_detector_model'),
+    await faceapi.nets.faceLandmark68Net.loadFromUri('/static/models/face_landmark_68_model'),
+    await faceapi.nets.faceRecognitionNet.loadFromUri('/static/models/face_recognition_model'),
+    await faceapi.nets.faceExpressionNet.loadFromUri('/static/models/face_expression_model'),
+    await faceapi.nets.ageGenderNet.loadFromUri('/static/models/age_gender_model')
+
+    ]);
+    console.log("FaceAPI models loaded");
+}
+
+async function startVideo() {
+    const video = document.getElementById('webcam');
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        
+        video.addEventListener('play', () => {
+            const canvas = faceapi.createCanvasFromMedia(video);
+            document.body.append(canvas);
+            const displaySize = { width: video.width, height: video.height };
+            faceapi.matchDimensions(canvas, displaySize);
+            
+            setInterval(async () => {
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withAgeAndGender();
+                const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                faceapi.draw.drawDetections(canvas, resizedDetections);
+                faceapi.draw.drawFaceLandmarks(canvas, resizedDetections);
+            }, 100);
+        });
+    } catch (error) {
+        console.error("Error accessing the webcam", error);
+    }
+}
+
+loadModels().then(startVideo);
+</script>
+
+</body>
+</html>

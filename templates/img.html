@@ -1,0 +1,54 @@
+<!-- Imagine Html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Upload Interface</title>
+</head>
+<body>
+
+<h2>Image Upload</h2>
+<form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" id="imageInput" name="image" accept="image/*">
+    <button type="submit">Upload Image</button>
+</form>
+
+<!-- Placeholders for messages -->
+<div id="message"></div> <!-- Success or error messages will be shown here -->
+<div id="imagePreview" style="margin-top:20px;"></div> <!-- Uploaded image preview -->
+
+<script>
+document.getElementById('uploadForm').onsubmit = function(event) {
+    event.preventDefault(); // Prevent the default form submission
+    var formData = new FormData();
+    var imageFile = document.getElementById('imageInput').files[0];
+    formData.append("image", imageFile);
+
+    // Use Fetch API to send the formData to the server
+    fetch('/upload-image', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    }) // Parse JSON response
+    .then(data => {
+        console.log(data);
+        document.getElementById('message').innerHTML = `<p style="color: green;">File uploaded successfully</p>`;
+
+        if (data.filename) {
+            document.getElementById('imagePreview').innerHTML = `<img src="${data.filename}" alt="Uploaded Image" style="max-width: 640px;">`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('message').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+    });
+};
+</script>
+
+</body>
+</html>
